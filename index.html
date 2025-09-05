@@ -41,7 +41,6 @@
 </head>
 <body>
   <div class="wrap">
-    <div id="banner" class="card" style="margin-bottom:12px; background:#101326; border:1px dashed #334; color:#cbd5e1"></div>
     <h1>Nim Scoreboard <span class="sub">— Kids vs Machine (MENACE‑style)</span></h1>
 
     <div class="grid">
@@ -134,7 +133,6 @@
     undoBtn: document.getElementById('undoBtn'),
     resetBtn: document.getElementById('resetBtn'),
     exportBtn: document.getElementById('exportBtn'),
-    banner: document.getElementById('banner')
   };
 
   const state = {
@@ -300,27 +298,8 @@
   els.resetBtn.addEventListener('click', resetScores);
   els.exportBtn.addEventListener('click', exportCSV);
 
-  // Banner + test post
-  function refreshBanner(){
-    if(!els.banner) return;
-    if(!GAS_URL){
-      els.banner.innerHTML = '<b>Google Sheets upload is NOT configured.</b> Set <code>GAS_URL</code> in the HTML to enable uploads. Events are stored locally and available via CSV export.';
-    } else {
-      els.banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;justify-content:space-between"><div>Google Sheets upload: <b>ENABLED</b>. Queue: <span id="qCount">0</span></div><button id="testPostBtn" class="tool">Send test row</button></div>';
-      document.getElementById('testPostBtn').addEventListener('click', ()=>{
-        const evt = makeEvent('kids');
-        log('Sending test row to Google Sheets…', 'warn');
-        sendEvent(evt);
-      });
-      const qEl = document.getElementById('qCount');
-      const obs = new MutationObserver(()=>{ if(qEl) qEl.textContent = state.queue.length; });
-      obs.observe(els.syncState, {childList:true});
-      if(qEl) qEl.textContent = state.queue.length;
-    }
-  }
 
   render();
-  refreshBanner();
 </script>
 </body>
 </html>
