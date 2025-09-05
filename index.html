@@ -59,18 +59,14 @@
             </select>
           </div>
           <div>
-            <label>Class</label>
-            <select id="klass">
-              <option>A</option>
-              <option>B</option>
-            </select>
-          </div>
-          <div>
-            <label>Group</label>
-            <select id="group">
-              <option>1</option>
-              <option>2</option>
-              <option>3</option>
+            <label>Groupe</label>
+            <select id="groupe">
+              <option>Nom 1</option>
+              <option>Nom 2</option>
+              <option>Nom 3</option>
+              <option>Nom 4</option>
+              <option>Nom 5</option>
+              <option>Nom 6</option>
             </select>
           </div>
           <div>
@@ -121,8 +117,7 @@
 
   const els = {
     level: document.getElementById('level'),
-    klass: document.getElementById('klass'),
-    group: document.getElementById('group'),
+    groupe: document.getElementById('groupe'),
     sessionId: document.getElementById('sessionId'),
     kidsScore: document.getElementById('kidsScore'),
     machineScore: document.getElementById('machineScore'),
@@ -148,15 +143,14 @@
   function genSessionId(){
     const now = new Date();
     const ts = now.toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
-    return `${els.level.value}-${els.klass.value}-${els.group.value}-${ts}`;
+    return `${els.level.value}-${els.groupe.value}-${ts}`;
   }
   function ensureSessionId(){
     if(!els.sessionId.value.trim()) els.sessionId.value = genSessionId();
   }
   ['change','input'].forEach(evt=>{
     els.level.addEventListener(evt, ensureSessionId);
-    els.klass.addEventListener(evt, ensureSessionId);
-    els.group.addEventListener(evt, ensureSessionId);
+    els.groupe.addEventListener(evt, ensureSessionId);
   });
   ensureSessionId();
 
@@ -217,8 +211,7 @@
     return {
       timestamp: now.toISOString(),
       level: els.level.value,
-      class: els.klass.value,
-      group: els.group.value,
+      groupe: els.groupe.value,
       session_id: els.sessionId.value.trim() || genSessionId(),
       scorer: who,
       kids_score: state.kids,
@@ -266,9 +259,9 @@
 
   function exportCSV(){
   const rows = [
-    ['timestamp','level','class','group','session_id','scorer','kids_score','machine_score','event_uuid','venue'],
+    ['timestamp','level','groupe','session_id','scorer','kids_score','machine_score','event_uuid','venue'],
     ...state.history.map(e=>[
-      e.timestamp, e.level, e.class, e.group, e.session_id,
+      e.timestamp, e.level, e.groupe, e.session_id,
       e.scorer, e.kids_score, e.machine_score, e.event_uuid, e.venue
     ])
   ];
