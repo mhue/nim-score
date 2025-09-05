@@ -16,7 +16,7 @@
     .sub{color:var(--muted); font-size:14px}
     label{font-size:13px;color:var(--muted)}
     select,input[type=text]{width:100%;padding:10px 12px;border-radius:12px;background:#0f1120;border:1px solid #2a2f45;color:var(--ink)}
-    .row{display:grid; gap:10px; grid-template-columns:repeat(4,1fr)}
+    .row{display:grid; gap:10px; grid-template-columns:repeat(5,1fr)}
     .row3{display:grid; gap:10px; grid-template-columns:repeat(3,1fr)}
     .score{display:flex; gap:12px; align-items:center; justify-content:space-between;}
     .score .big{font-size:54px; font-weight:900; letter-spacing:1px}
@@ -70,6 +70,15 @@
             </select>
           </div>
           <div>
+            <label>Animateur</label>
+            <select id="animateur">
+              <option>Di</option>
+              <option>Loïc</option>
+              <option>Lucie</option>
+              <option>Martial</option>
+            </select>
+          </div>
+          <div>
             <label>Session ID (auto)</label>
             <input id="sessionId" type="text" placeholder="auto-generated" />
           </div>
@@ -118,6 +127,7 @@
   const els = {
     level: document.getElementById('level'),
     groupe: document.getElementById('groupe'),
+    animateur: document.getElementById('animateur'),
     sessionId: document.getElementById('sessionId'),
     kidsScore: document.getElementById('kidsScore'),
     machineScore: document.getElementById('machineScore'),
@@ -147,15 +157,19 @@
   function genSessionId(){
     const now = new Date();
     const ts = now.toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
-    const lastName = getLastName(els.groupe.value);
-    return `${els.level.value}-${lastName}-${ts}`;
+    return `${els.animateur.value}-${ts}`;
   }
   function ensureSessionId(){
     if(!els.sessionId.value.trim()) els.sessionId.value = genSessionId();
   }
+  
+  function regenerateSessionId(){
+    els.sessionId.value = genSessionId();
+  }
+  
+  // Regenerate session ID when animateur changes
   ['change','input'].forEach(evt=>{
-    els.level.addEventListener(evt, ensureSessionId);
-    els.groupe.addEventListener(evt, ensureSessionId);
+    els.animateur.addEventListener(evt, regenerateSessionId);
   });
   ensureSessionId();
 
@@ -217,6 +231,7 @@
       timestamp: now.toISOString(),
       level: els.level.value,
       groupe: els.groupe.value,
+      animateur: els.animateur.value,
       session_id: els.sessionId.value.trim() || genSessionId(),
       scorer: who,
       kids_score: state.kids,
@@ -264,9 +279,9 @@
 
   function exportCSV(){
   const rows = [
-    ['timestamp','level','groupe','session_id','scorer','kids_score','machine_score','event_uuid','venue'],
+    ['timestamp','level','groupe','animateur','session_id','scorer','kids_score','machine_score','event_uuid','venue'],
     ...state.history.map(e=>[
-      e.timestamp, e.level, e.groupe, e.session_id,
+      e.timestamp, e.level, e.groupe, e.animateur, e.session_id,
       e.scorer, e.kids_score, e.machine_score, e.event_uuid, e.venue
     ])
   ];
