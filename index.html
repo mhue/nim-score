@@ -61,12 +61,12 @@
           <div>
             <label>Groupe</label>
             <select id="groupe">
-              <option>Nom 1</option>
-              <option>Nom 2</option>
-              <option>Nom 3</option>
-              <option>Nom 4</option>
-              <option>Nom 5</option>
-              <option>Nom 6</option>
+              <option>Ada Lovelace</option>
+              <option>Léonard de Vinci</option>
+              <option>Ludwig van Beethoven</option>
+              <option>Pina Bausch</option>
+              <option>Sarah Bernhardt</option>
+              <option>Victor Hugo</option>
             </select>
           </div>
           <div>
@@ -140,10 +140,15 @@
   let clickLock = false;  // debounce
 
   // --- Session ID helpers ---
+  function getLastName(fullName) {
+    return fullName.split(' ').pop();
+  }
+  
   function genSessionId(){
     const now = new Date();
     const ts = now.toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
-    return `${els.level.value}-${els.groupe.value}-${ts}`;
+    const lastName = getLastName(els.groupe.value);
+    return `${els.level.value}-${lastName}-${ts}`;
   }
   function ensureSessionId(){
     if(!els.sessionId.value.trim()) els.sessionId.value = genSessionId();
