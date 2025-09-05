@@ -49,7 +49,7 @@
         <h2>Session</h2>
         <div class="row">
           <div>
-            <label>Level</label>
+            <label>Classe</label>
             <select id="level">
               <option>CP</option>
               <option>CE1</option>
@@ -78,7 +78,7 @@
 
         <div class="score">
           <div class="side">
-            <span class="badge">Kids</span>
+            <span class="badge">Enfants</span>
             <span id="kidsScore" class="big">0</span>
           </div>
           <div class="side">
@@ -230,7 +230,7 @@
     if(who==='kids') state.kids++; else state.machine++;
     const evt = makeEvent(who);
     state.history.push(evt);
-    log(`${who==='kids'?'Kids':'Machine'} +1 → ${state.kids}–${state.machine}`, 'ok');
+    log(`${who==='kids'?'Enfants':'Machine'} +1 → ${state.kids}–${state.machine}`, 'ok');
     render();
     sendEvent(evt);
   }
