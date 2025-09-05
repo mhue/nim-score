@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nim Scoreboard — Kids vs Machine</title>
+  <style>
+    :root { --bg:#0e0f12; --card:#171923; --ink:#e8eaf3; --muted:#9aa3b2; --accent:#6ae3ff; --ok:#34d399; --warn:#f59e0b; }
+    *{box-sizing:border-box} body{margin:0;font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; color:var(--ink); background:radial-gradient(1200px 1200px at 100% -200px, #112 0, #0b0d12 50%, #06070a 100%);}
+    .wrap{max-width:900px;margin:24px auto;padding:16px}
+    .grid{display:grid; gap:16px}
+    @media(min-width:860px){.grid{grid-template-columns: 1.2fr .8fr}}
+    .card{background:var(--card); border:1px solid #24273a; border-radius:20px; padding:18px; box-shadow:0 10px 25px rgba(0,0,0,.25)}
+    h1{margin:8px 0 4px; font-weight:800; letter-spacing:.2px}
+    h2{margin:0 0 12px; font-weight:700}
+    .sub{color:var(--muted); font-size:14px}
+    label{font-size:13px;color:var(--muted)}
+    select,input[type=text]{width:100%;padding:10px 12px;border-radius:12px;background:#0f1120;border:1px solid #2a2f45;color:var(--ink)}
+    .row{display:grid; gap:10px; grid-template-columns:repeat(4,1fr)}
+    .row3{display:grid; gap:10px; grid-template-columns:repeat(3,1fr)}
+    .score{display:flex; gap:12px; align-items:center; justify-content:space-between;}
+    .score .big{font-size:54px; font-weight:900; letter-spacing:1px}
+    .badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #313349; color:#c6d0f5}
+    .muted{color:var(--muted)}
+    .btns{display:grid; gap:12px; grid-template-columns:1fr 1fr}
+    button{cursor:pointer; border:1px solid #2b3146; background:#0c0f1e; color:var(--ink); padding:14px 16px; border-radius:16px; font-weight:800; letter-spacing:.2px; transition:transform .02s ease, background .2s ease, border-color .2s ease}
+    button:hover{background:#0f1326; border-color:#3a4163}
+    .primary{background:linear-gradient(180deg,#16213e,#0f172a); border-color:#3a4163}
+    .kids{outline:2px solid rgba(52,211,153,.25)}
+    .machine{outline:2px solid rgba(106,227,255,.25)}
+    .side{display:flex; gap:10px; align-items:center}
+    .pill{padding:6px 10px; border-radius:999px; border:1px dashed #334; font-size:12px; color:#b6c2e0}
+    .tools{display:flex; gap:8px; flex-wrap:wrap}
+    .tool{font-size:12px; padding:8px 10px; border-radius:12px; border:1px solid #2a2f45; background:#0d0f1d; color:#dbe4ff}
+    .log{max-height:220px; overflow:auto; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:12.5px; background:#0b0d16; border:1px solid #24273a; border-radius:12px; padding:10px}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .fail{color:#ef4444}
+    .hr{height:1px;background:#23263b;margin:10px 0 14px}
+    .footer{margin-top:8px;color:#7f8aa5;font-size:12px}
+    .right{ text-align:right }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="banner" class="card" style="margin-bottom:12px; background:#101326; border:1px dashed #334; color:#cbd5e1"></div>
+    <h1>Nim Scoreboard <span class="sub">— Kids vs Machine (MENACE‑style)</span></h1>
+
+    <div class="grid">
+      <!-- LEFT: Scoreboard -->
+      <section class="card">
+        <h2>Session</h2>
+        <div class="row">
+          <div>
+            <label>Level</label>
+            <select id="level">
+              <option>CP</option>
+              <option>CE1</option>
+              <option>CE2</option>
+              <option>CM1</option>
+              <option>CM2</option>
+            </select>
+          </div>
+          <div>
+            <label>Class</label>
+            <select id="klass">
+              <option>A</option>
+              <option>B</option>
+            </select>
+          </div>
+          <div>
+            <label>Group</label>
+            <select id="group">
+              <option>1</option>
+              <option>2</option>
+              <option>3</option>
+            </select>
+          </div>
+          <div>
+            <label>Session ID (auto)</label>
+            <input id="sessionId" type="text" placeholder="auto-generated" />
+          </div>
+        </div>
+        <div class="hr"></div>
+
+        <div class="score">
+          <div class="side">
+            <span class="badge">Kids</span>
+            <span id="kidsScore" class="big">0</span>
+          </div>
+          <div class="side">
+            <span class="badge">Machine</span>
+            <span id="machineScore" class="big">0</span>
+          </div>
+        </div>
+
+        <div class="btns" style="margin-top:14px">
+          <button id="btnKids" class="primary kids">+1 Kids</button>
+          <button id="btnMachine" class="primary machine">+1 Machine</button>
+        </div>
+
+        <div class="tools" style="margin-top:12px">
+          <button class="tool" id="undoBtn">↩︎ Undo last</button>
+          <button class="tool" id="resetBtn">⟲ Reset scores</button>
+          <button class="tool" id="exportBtn">⬇︎ Export CSV</button>
+          <span class="pill" id="syncState">offline queue: 0</span>
+        </div>
+      </section>
+
+      <!-- RIGHT: Stream & tips -->
+      <aside class="card">
+        <h2>Event stream</h2>
+        <div id="log" class="log" aria-live="polite"></div>
+        <div class="footer right">Data auto-sent to Google Sheets (if configured); queued when offline.</div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+  // ===================== CONFIG =====================
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxNqxpViACVuCPgV_YCkV81oDZuRa0MkpVmvjKpcntfLiSyd-pE2tSbjUOfwi_QCHkflA/exec";
+  const USE_NO_CORS = true;
+  // ==================================================
+
+  const els = {
+    level: document.getElementById('level'),
+    klass: document.getElementById('klass'),
+    group: document.getElementById('group'),
+    sessionId: document.getElementById('sessionId'),
+    kidsScore: document.getElementById('kidsScore'),
+    machineScore: document.getElementById('machineScore'),
+    log: document.getElementById('log'),
+    syncState: document.getElementById('syncState'),
+    btnKids: document.getElementById('btnKids'),
+    btnMachine: document.getElementById('btnMachine'),
+    undoBtn: document.getElementById('undoBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    exportBtn: document.getElementById('exportBtn'),
+    banner: document.getElementById('banner')
+  };
+
+  const state = {
+    kids: 0,
+    machine: 0,
+    history: [],
+    queue: loadQueue(),
+  };
+  let isFlushing = false; // guard against concurrent flushes
+  let clickLock = false;  // debounce
+
+  // --- Session ID helpers ---
+  function genSessionId(){
+    const now = new Date();
+    const ts = now.toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
+    return `${els.level.value}-${els.klass.value}-${els.group.value}-${ts}`;
+  }
+  function ensureSessionId(){
+    if(!els.sessionId.value.trim()) els.sessionId.value = genSessionId();
+  }
+  ['change','input'].forEach(evt=>{
+    els.level.addEventListener(evt, ensureSessionId);
+    els.klass.addEventListener(evt, ensureSessionId);
+    els.group.addEventListener(evt, ensureSessionId);
+  });
+  ensureSessionId();
+
+  // --- UI helpers ---
+  function render(){
+    els.kidsScore.textContent = state.kids;
+    els.machineScore.textContent = state.machine;
+    els.syncState.textContent = `offline queue: ${state.queue.length}`;
+  }
+  function log(line, cls){
+    const div = document.createElement('div');
+    if(cls) div.className = cls;
+    div.textContent = line;
+    els.log.appendChild(div);
+    els.log.scrollTop = els.log.scrollHeight;
+  }
+
+  // --- Queue persistence ---
+  function loadQueue(){
+    try{ return JSON.parse(localStorage.getItem('nimQueue')||'[]'); }catch{ return []; }
+  }
+  function saveQueue(){
+    localStorage.setItem('nimQueue', JSON.stringify(state.queue));
+  }
+
+  // --- Networking ---
+  async function flushQueue(){
+    if(!GAS_URL || state.queue.length===0) return;
+    if(isFlushing) return;
+    isFlushing = true;
+    try {
+      while(state.queue.length>0){
+        const evt = state.queue[0];
+        try{
+          await fetch(GAS_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(evt),
+            mode: USE_NO_CORS ? 'no-cors' : 'cors'
+          });
+          state.queue.shift();
+          saveQueue();
+          render();
+        }catch(err){
+          log('Send failed — staying queued.', 'fail');
+          break;
+        }
+      }
+    } finally {
+      isFlushing = false;
+    }
+  }
+  setInterval(flushQueue, 4000);
+  window.addEventListener('online', flushQueue);
+
+  function makeEvent(who){
+    const now = new Date();
+    return {
+      timestamp: now.toISOString(),
+      level: els.level.value,
+      class: els.klass.value,
+      group: els.group.value,
+      session_id: els.sessionId.value.trim() || genSessionId(),
+      scorer: who,
+      kids_score: state.kids,
+      machine_score: state.machine,
+      event_uuid: (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2)+Date.now(),
+      venue: 'Fête de la Science',
+    };
+  }
+
+  function addPoint(who){
+    if(who==='kids') state.kids++; else state.machine++;
+    const evt = makeEvent(who);
+    state.history.push(evt);
+    log(`${who==='kids'?'Kids':'Machine'} +1 → ${state.kids}–${state.machine}`, 'ok');
+    render();
+    sendEvent(evt);
+  }
+
+  function addPointGuarded(who){
+    if(clickLock) return;
+    clickLock = true;
+    try{ addPoint(who); } finally { setTimeout(()=>{ clickLock=false; }, 250); }
+  }
+
+  async function sendEvent(evt){
+    state.queue.push(evt); saveQueue(); render();
+    if(!GAS_URL){ log('No GAS_URL configured — kept locally.', 'warn'); return; }
+    await flushQueue();
+  }
+
+  function undo(){
+    const last = state.history.pop();
+    if(!last){ log('Nothing to undo.', 'warn'); return; }
+    if(last.scorer==='kids') state.kids = Math.max(0, state.kids-1);
+    else state.machine = Math.max(0, state.machine-1);
+    log(`Undo: ${last.scorer} -1 → ${state.kids}–${state.machine}`, 'warn');
+    render();
+  }
+
+  function resetScores(){
+    state.kids = 0; state.machine = 0; state.history = [];
+    log('Scores reset to 0–0', 'warn');
+    render();
+  }
+
+  function exportCSV(){
+  const rows = [
+    ['timestamp','level','class','group','session_id','scorer','kids_score','machine_score','event_uuid','venue'],
+    ...state.history.map(e=>[
+      e.timestamp, e.level, e.class, e.group, e.session_id,
+      e.scorer, e.kids_score, e.machine_score, e.event_uuid, e.venue
+    ])
+  ];
+  const csv = rows
+    .map(r => r.map(x => {
+      const s = String(x);
+      return s.includes(',') ? `"${s.replace(/"/g,'""')}"` : s;
+    }).join(','))
+    .join('\\n');  // <— note escaped backslash n for newline
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), {
+    href: url,
+    download: `nim_session_${els.sessionId.value||'export'}.csv`
+  });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+
+  // Wire handlers
+  els.btnKids.addEventListener('click', ()=>addPointGuarded('kids'));
+  els.btnMachine.addEventListener('click', ()=>addPointGuarded('machine'));
+  els.undoBtn.addEventListener('click', undo);
+  els.resetBtn.addEventListener('click', resetScores);
+  els.exportBtn.addEventListener('click', exportCSV);
+
+  // Banner + test post
+  function refreshBanner(){
+    if(!els.banner) return;
+    if(!GAS_URL){
+      els.banner.innerHTML = '<b>Google Sheets upload is NOT configured.</b> Set <code>GAS_URL</code> in the HTML to enable uploads. Events are stored locally and available via CSV export.';
+    } else {
+      els.banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;justify-content:space-between"><div>Google Sheets upload: <b>ENABLED</b>. Queue: <span id="qCount">0</span></div><button id="testPostBtn" class="tool">Send test row</button></div>';
+      document.getElementById('testPostBtn').addEventListener('click', ()=>{
+        const evt = makeEvent('kids');
+        log('Sending test row to Google Sheets…', 'warn');
+        sendEvent(evt);
+      });
+      const qEl = document.getElementById('qCount');
+      const obs = new MutationObserver(()=>{ if(qEl) qEl.textContent = state.queue.length; });
+      obs.observe(els.syncState, {childList:true});
+      if(qEl) qEl.textContent = state.queue.length;
+    }
+  }
+
+  render();
+  refreshBanner();
+</script>
+</body>
+</html>
