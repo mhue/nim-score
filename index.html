@@ -229,7 +229,7 @@
     const now = new Date();
     return {
       timestamp: now.toISOString(),
-      level: els.level.value,
+      classe: els.level.value,
       groupe: els.groupe.value,
       animateur: els.animateur.value,
       session_id: els.sessionId.value.trim() || genSessionId(),
@@ -279,9 +279,9 @@
 
   function exportCSV(){
   const rows = [
-    ['timestamp','level','groupe','animateur','session_id','scorer','kids_score','machine_score','event_uuid','venue'],
+    ['Timestamp','Classe','Groupe','Animateur','Session_ID','Scorer','Kids_Score','Machine_Score','Event_UUID','Venue'],
     ...state.history.map(e=>[
-      e.timestamp, e.level, e.groupe, e.animateur, e.session_id,
+      e.timestamp, e.classe, e.groupe, e.animateur, e.session_id,
       e.scorer, e.kids_score, e.machine_score, e.event_uuid, e.venue
     ])
   ];
