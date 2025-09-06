@@ -276,46 +276,7 @@
         .log-entry.game { color: var(--warn); }
         .log-entry.learning { color: #a78bfa; }
 
-        .action-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
-        }
 
-        .action-button {
-            padding: 10px 20px;
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .action-button.take-1 { border-color: var(--red); }
-        .action-button.take-2 { border-color: var(--green); }
-        .action-button.take-3 { border-color: var(--blue); }
-
-        .learning-button {
-            background: linear-gradient(180deg, #4c1d95, #312e81);
-            border: 2px solid #7c3aed;
-            color: var(--ink);
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            margin: 20px auto;
-            display: block;
-            animation: learningPulse 2s ease-in-out infinite;
-        }
-
-        .learning-button:hover {
-            background: linear-gradient(180deg, #5b21b6, #3730a3);
-            transform: translateY(-1px);
-        }
-
-        @keyframes learningPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
-            50% { box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
-        }
 
         .winner {
             text-align: center;
@@ -398,15 +359,6 @@
                 </div>
             </div>
             
-            <div class="action-buttons" id="actionButtons">
-                <button class="action-button take-1" onclick="playerMove(1)" disabled>Take 1 stick (Red)</button>
-                <button class="action-button take-2" onclick="playerMove(2)" disabled>Take 2 sticks (Green)</button>
-                <button class="action-button take-3" onclick="playerMove(3)" disabled>Take 3 sticks (Blue)</button>
-            </div>
-            
-            <button class="learning-button" id="learningButton" onclick="processLearning()" style="display: none;">
-                🧠 Apply Learning Rules
-            </button>
         </div>
 
         <div class="card">
@@ -416,7 +368,6 @@
                 <select id="opponentStrategy">
                     <option value="random">Random Player</option>
                     <option value="optimal">Optimal Player</option>
-                    <option value="manual">Manual Play</option>
                 </select>
                 
                 <label>Number of Games:</label>
@@ -619,32 +570,6 @@
             }
         }
 
-        // Player makes a move
-        function playerMove(action) {
-            if (!gameActive || currentPlayer !== 'kids') return;
-
-            action = Math.min(action, currentSticks);
-            const sticksBeforeMove = currentSticks;
-            
-            // Add taken sticks to the visual area for the corresponding box
-            for (let i = 0; i < action; i++) {
-                takenSticksAreas[sticksBeforeMove].opponent.push('stick');
-            }
-            
-            currentSticks -= action;
-            
-            log(`👥 Kids take ${action} stick(s) → ${currentSticks} sticks remain`, "kids");
-            updateDisplay();
-            updateBoxesDisplay(); // Update visual areas
-            
-            if (currentSticks === 0) {
-                endGame('machine'); // Kids lose in misère variant
-            } else {
-                currentPlayer = 'machine';
-                updatePlayerTurn();
-                setTimeout(machineMove, 1000); // Delay for better visualization
-            }
-        }
 
         // Optimal player strategy for misère Nim
         function getOptimalMove(sticks) {
@@ -820,11 +745,7 @@
             
             log("🎮 New game started!", "game");
             
-            // For manual play, the machine should make the first move immediately
-            if (document.getElementById('opponentStrategy').value === 'manual') {
-                setTimeout(machineMove, 500);
-            }
-            // For AI games, the game loop will handle the turns
+            // The game loop will handle the turns
         }
 
         // Run a single game
@@ -876,11 +797,6 @@
             const strategy = document.getElementById('opponentStrategy').value;
             const gameCount = parseInt(document.getElementById('gameCount').value);
             
-            if (strategy === 'manual') {
-                alert('Cannot run multiple games in manual mode');
-                isSimulating = false;
-                return;
-            }
             
             const progressBar = document.getElementById('progressBar');
             const progressFill = document.getElementById('progressFill');
@@ -1113,34 +1029,17 @@
 
         function updatePlayerTurn() {
             const playerDisplay = document.getElementById('currentPlayer');
-            const actionButtons = document.getElementById('actionButtons');
             const strategy = document.getElementById('opponentStrategy').value;
             
             if (!gameActive) {
                 playerDisplay.textContent = 'Game Over';
-                actionButtons.style.display = 'none';
                 return;
             }
             
             if (currentPlayer === 'machine') {
                 playerDisplay.textContent = "Machine's turn";
-                actionButtons.style.display = 'none';
-                // Don't automatically trigger machine move here - it should be triggered by the calling function
             } else {
-                if (strategy === 'manual') {
-                    playerDisplay.textContent = "Your turn (Kids)";
-                    actionButtons.style.display = 'flex';
-                    
-                    // Enable/disable buttons based on available sticks
-                    const buttons = actionButtons.querySelectorAll('button');
-                    buttons.forEach((btn, index) => {
-                        btn.disabled = (index + 1) > currentSticks;
-                    });
-                } else {
-                    playerDisplay.textContent = `${strategy === 'optimal' ? 'Optimal' : 'Random'} player's turn`;
-                    actionButtons.style.display = 'none';
-                    // Don't automatically trigger AI move here - it should be triggered by the calling function
-                }
+                playerDisplay.textContent = `${strategy === 'optimal' ? 'Optimal' : 'Random'} player's turn`;
             }
         }
 
