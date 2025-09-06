@@ -382,8 +382,8 @@
                 </select>
                 
                 <button onclick="runSingleGame()">Play One Game</button>
+                <button id="learnButton" onclick="processLearning()" disabled>🧠 Learn from Game</button>
                 <button onclick="runMultipleGames()">Run Multiple Games</button>
-                <button id="learnButton" onclick="processLearning()" style="display: none;">🧠 Learn from Game</button>
                 <button onclick="resetMachine()">Reset Machine Learning</button>
             </div>
             
@@ -643,10 +643,10 @@
             updateWinnerDisplay(winner);
             updatePlayerTurn();
             
-            // Show learn button for single games, auto-learn only for batch simulations
+            // Enable learn button for single games, auto-learn only for batch simulations
             if (!isBatchSimulation) {
-                // Single games (manual or AI) - show learn button
-                document.getElementById('learnButton').style.display = 'inline-block';
+                // Single games - enable learn button
+                document.getElementById('learnButton').disabled = false;
                 log("👆 Click 'Learn from Game' to see how the machine processes this result!", "game");
                 // Don't clear staging areas - keep them visible until learning
             } else {
@@ -712,8 +712,8 @@
                 return;
             }
             
-            // Hide the learn button
-            document.getElementById('learnButton').style.display = 'none';
+            // Disable the learn button
+            document.getElementById('learnButton').disabled = true;
             
             if (lastGameWinner === 'machine') {
                 applyWinningLearning();
@@ -736,7 +736,7 @@
             if (forceClear || lastGameWinner === null) {
                 clearStagingAreas(); // Clear any beads from previous game
                 lastGameWinner = null;
-                document.getElementById('learnButton').style.display = 'none';
+                document.getElementById('learnButton').disabled = true;
             }
             
             updateDisplay();
