@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte de Jeu - Nim avec Apprentissage Automatique</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.4;
+            color: #333;
+            background: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        .game-card {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 15mm;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 15px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #7f8c8d;
+            margin: 5px 0 0 0;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title .emoji {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .rules-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .rules-list li {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .rules-list li:last-child {
+            border-bottom: none;
+        }
+
+        .rule-number {
+            background: #3498db;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .bead-guide {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 15px 0;
+        }
+
+        .bead-item {
+            text-align: center;
+            padding: 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .bead-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+            gap: 5px;
+        }
+
+        .bead {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .bead.red {
+            background: #e74c3c;
+            border-color: #c0392b;
+        }
+
+        .bead.green {
+            background: #27ae60;
+            border-color: #229954;
+        }
+
+        .bead.blue {
+            background: #3498db;
+            border-color: #2980b9;
+        }
+
+        .stick {
+            width: 4px;
+            height: 30px;
+            background: #8b4513;
+            border-radius: 2px;
+            margin: 0 2px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .sticks-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .bead-label {
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .action-text {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .learning-section {
+            background: #f8f9fa;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .learning-rules {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .learning-rule {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .win-rule {
+            border-left: 4px solid #28a745;
+        }
+
+        .lose-rule {
+            border-left: 4px solid #dc3545;
+        }
+
+        .rule-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .win-rule .rule-title {
+            color: #28a745;
+        }
+
+        .lose-rule .rule-title {
+            color: #dc3545;
+        }
+
+        .example-box {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .game-card {
+                margin: 0;
+                padding: 10mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-card">
+        <div class="header">
+            <h1 class="title">🎯 Jeu de Nim avec Apprentissage Automatique</h1>
+            <p class="subtitle">Carte de Référence pour la Machine à Perles</p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="emoji">🎮</span>
+                Règles du Jeu
+            </h2>
+            <ul class="rules-list">
+                <li>
+                    <span class="rule-number">1</span>
+                    <strong>Début :</strong> Commencer avec 6 bâtonnets
+                </li>
+                <li>
+                    <span class="rule-number">2</span>
+                    <strong>Tour de jeu :</strong> Chaque joueur retire 1, 2 ou 3 bâtonnets à son tour
+                </li>
+                <li>
+                    <span class="rule-number">3</span>
+                    <strong>Objectif :</strong> Ne PAS prendre le dernier bâtonnet
+                </li>
+                <li>
+                    <span class="rule-number">4</span>
+                    <strong>Victoire :</strong> Le joueur qui prend le dernier bâtonnet PERD
+                </li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="emoji">🔴</span>
+                Guide des Perles Colorées
+            </h2>
+            <div class="bead-guide">
+                <div class="bead-item">
+                    <div class="bead-visual">
+                        <div class="bead red"></div>
+                    </div>
+                    <div class="bead-label">Perle Rouge</div>
+                    <div class="sticks-visual">
+                        <div class="stick"></div>
+                    </div>
+                    <div class="action-text">Prendre 1 bâtonnet</div>
+                </div>
+
+                <div class="bead-item">
+                    <div class="bead-visual">
+                        <div class="bead green"></div>
+                    </div>
+                    <div class="bead-label">Perle Verte</div>
+                    <div class="sticks-visual">
+                        <div class="stick"></div>
+                        <div class="stick"></div>
+                    </div>
+                    <div class="action-text">Prendre 2 bâtonnets</div>
+                </div>
+
+                <div class="bead-item">
+                    <div class="bead-visual">
+                        <div class="bead blue"></div>
+                    </div>
+                    <div class="bead-label">Perle Bleue</div>
+                    <div class="sticks-visual">
+                        <div class="stick"></div>
+                        <div class="stick"></div>
+                        <div class="stick"></div>
+                    </div>
+                    <div class="action-text">Prendre 3 bâtonnets</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="emoji">📦</span>
+                Système de Boîtes
+            </h2>
+            <p><strong>Chaque boîte correspond à un état du jeu :</strong></p>
+            <ul class="rules-list">
+                <li>
+                    <span class="rule-number">1</span>
+                    Boîte "1" = Il reste 1 bâtonnet
+                </li>
+                <li>
+                    <span class="rule-number">2</span>
+                    Boîte "2" = Il reste 2 bâtonnets
+                </li>
+                <li>
+                    <span class="rule-number">3</span>
+                    Boîte "3" = Il reste 3 bâtonnets
+                </li>
+                <li>
+                    <span class="rule-number">4</span>
+                    Boîte "4" = Il reste 4 bâtonnets
+                </li>
+                <li>
+                    <span class="rule-number">5</span>
+                    Boîte "5" = Il reste 5 bâtonnets
+                </li>
+                <li>
+                    <span class="rule-number">6</span>
+                    Boîte "6" = Il reste 6 bâtonnets
+                </li>
+            </ul>
+            <div class="example-box">
+                <strong>Exemple :</strong> S'il reste 4 bâtonnets, la machine pioche une perle dans la boîte "4"
+            </div>
+        </div>
+
+        <div class="section learning-section">
+            <h2 class="section-title">
+                <span class="emoji">🧠</span>
+                Règles d'Apprentissage
+            </h2>
+            <div class="learning-rules">
+                <div class="learning-rule win-rule">
+                    <div class="rule-title">🏆 Si la machine GAGNE</div>
+                    <p>Remettre chaque perle jouée dans sa boîte + ajouter 1 perle bonus de la même couleur</p>
+                    <div class="example-box">
+                        Perle rouge jouée → Remettre + 1 rouge bonus
+                    </div>
+                </div>
+
+                <div class="learning-rule lose-rule">
+                    <div class="rule-title">❌ Si la machine PERD</div>
+                    <p>Jeter toutes les perles jouées (ne pas les remettre dans les boîtes)</p>
+                    <div class="example-box">
+                        Perles jouées → À la poubelle !
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="emoji">🔄</span>
+                Déroulement d'une Partie
+            </h2>
+            <ul class="rules-list">
+                <li>
+                    <span class="rule-number">1</span>
+                    <strong>Initialisation :</strong> Mettre 1 perle de chaque couleur dans chaque boîte
+                </li>
+                <li>
+                    <span class="rule-number">2</span>
+                    <strong>Tour de la machine :</strong> Piocher une perle au hasard dans la boîte correspondante
+                </li>
+                <li>
+                    <span class="rule-number">3</span>
+                    <strong>Action :</strong> Retirer le nombre de bâtonnets selon la couleur de la perle
+                </li>
+                <li>
+                    <span class="rule-number">4</span>
+                    <strong>Tour des enfants :</strong> Les enfants choisissent combien de bâtonnets retirer
+                </li>
+                <li>
+                    <span class="rule-number">5</span>
+                    <strong>Fin de partie :</strong> Quand il ne reste plus de bâtonnets
+                </li>
+                <li>
+                    <span class="rule-number">6</span>
+                    <strong>Apprentissage :</strong> Appliquer les règles d'apprentissage selon le résultat
+                </li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p><strong>Fête de la Science 2024</strong> • Démonstration d'Apprentissage par Renforcement</p>
+            <p>La machine apprend à mieux jouer en renforçant les stratégies gagnantes !</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-print when page loads (optional)
+        // window.onload = function() { window.print(); }
+    </script>
+</body>
+</html>
