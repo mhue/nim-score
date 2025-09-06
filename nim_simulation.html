@@ -214,23 +214,31 @@
 
         .winner {
             text-align: center;
-            font-size: 1.5em;
-            font-weight: 700;
-            padding: 20px;
-            border-radius: 12px;
+            font-size: 2em;
+            font-weight: 900;
+            padding: 25px;
+            border-radius: 16px;
             margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            animation: winnerPulse 2s ease-in-out;
         }
 
         .winner.machine {
-            background: rgba(106, 227, 255, 0.1);
+            background: rgba(106, 227, 255, 0.2);
             color: var(--accent);
-            border: 2px solid var(--accent);
+            border: 3px solid var(--accent);
         }
 
         .winner.kids {
-            background: rgba(52, 211, 153, 0.1);
+            background: rgba(52, 211, 153, 0.2);
             color: var(--ok);
-            border: 2px solid var(--ok);
+            border: 3px solid var(--ok);
+        }
+
+        @keyframes winnerPulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .simulation-controls {
@@ -438,8 +446,10 @@
                 player: 'machine'
             });
 
+            const sticksBeforeMove = currentSticks;
             currentSticks -= action;
-            log(`Machine takes ${action} stick(s) from box ${currentSticks + action} (${action === 1 ? 'red' : action === 2 ? 'green' : 'blue'} bead)`, "machine");
+            const colorName = action === 1 ? 'red' : action === 2 ? 'green' : 'blue';
+            log(`🤖 Machine draws ${colorName} bead from box ${sticksBeforeMove} → takes ${action} stick(s) → ${currentSticks} sticks remain`, "machine");
             
             updateDisplay();
             
@@ -456,9 +466,10 @@
             if (!gameActive || currentPlayer !== 'kids') return;
 
             action = Math.min(action, currentSticks);
+            const sticksBeforeMove = currentSticks;
             currentSticks -= action;
             
-            log(`Kids take ${action} stick(s)`, "kids");
+            log(`👥 Kids take ${action} stick(s) → ${currentSticks} sticks remain`, "kids");
             updateDisplay();
             
             if (currentSticks === 0) {
@@ -501,10 +512,11 @@
             }
             
             action = Math.min(action, currentSticks);
+            const sticksBeforeMove = currentSticks;
             currentSticks -= action;
             
             const strategyName = strategy === 'optimal' ? 'Optimal' : 'Random';
-            log(`${strategyName} player takes ${action} stick(s)`, "kids");
+            log(`👥 ${strategyName} player takes ${action} stick(s) → ${currentSticks} sticks remain`, "kids");
             updateDisplay();
             
             if (currentSticks === 0) {
@@ -512,6 +524,7 @@
             } else {
                 currentPlayer = 'machine';
                 updatePlayerTurn();
+                // Turn control is handled by the calling game loop
             }
         }
 
@@ -522,12 +535,12 @@
             
             if (winner === 'machine') {
                 stats.machineWins++;
-                log("🎉 Machine wins!", "machine");
+                log("🎉 GAME OVER: Machine wins! (Kids took the last stick)", "machine");
                 // Learning rule 1: Machine wins - add beads back with one extra
                 applyWinningLearning();
             } else {
                 stats.kidsWins++;
-                log("🎉 Kids win!", "kids");
+                log("🎉 GAME OVER: Kids win! (Machine took the last stick)", "kids");
                 // Learning rule 2: Machine loses - discard played beads
                 applyLosingLearning();
             }
@@ -535,32 +548,38 @@
             updateStats();
             updateWinnerDisplay(winner);
             updatePlayerTurn();
+            updateBoxesDisplay(); // Ensure boxes are updated after learning
         }
 
         // Apply learning when machine wins
         function applyWinningLearning() {
+            log("🧠 LEARNING: Machine won - reinforcing successful moves:", "learning");
             for (let move of gameHistory) {
                 if (move.player === 'machine') {
                     const box = machineBoxes[move.sticks];
                     const colorName = move.action === 1 ? 'red' : move.action === 2 ? 'green' : 'blue';
+                    const beforeCount = move.action === 1 ? box.red : move.action === 2 ? box.green : box.blue;
                     
-                    // Add back the bead that was played, plus one more
-                    if (move.action === 1) box.red += 2;
-                    else if (move.action === 2) box.green += 2;
-                    else box.blue += 2;
+                    // Put back the bead that was picked, plus add one more of the same color
+                    if (move.action === 1) box.red += 1; // put back original + 1 extra = +1 total
+                    else if (move.action === 2) box.green += 1;
+                    else box.blue += 1;
                     
-                    log(`Learning: Added 2 ${colorName} beads to box ${move.sticks}`, "learning");
+                    const afterCount = move.action === 1 ? box.red : move.action === 2 ? box.green : box.blue;
+                    log(`  • Box ${move.sticks}: ${colorName} bead put back + 1 extra → ${beforeCount} → ${afterCount} (+1)`, "learning");
                 }
             }
-            updateBoxesDisplay();
         }
 
         // Apply learning when machine loses
         function applyLosingLearning() {
-            log("Learning: Discarded played beads (no beads added back)", "learning");
-            // Beads are already "removed" conceptually when played
-            // In the physical version, you would discard them
-            // Here we just don't add them back
+            log("🧠 LEARNING: Machine lost - discarding unsuccessful moves:", "learning");
+            for (let move of gameHistory) {
+                if (move.player === 'machine') {
+                    const colorName = move.action === 1 ? 'red' : move.action === 2 ? 'green' : 'blue';
+                    log(`  • Box ${move.sticks}: ${colorName} bead discarded (not added back)`, "learning");
+                }
+            }
         }
 
         // Start a new game
@@ -575,10 +594,11 @@
             
             log("🎮 New game started!", "game");
             
-            // Start with machine move if not manual play
-            if (document.getElementById('opponentStrategy').value !== 'manual') {
+            // For manual play, the machine should make the first move immediately
+            if (document.getElementById('opponentStrategy').value === 'manual') {
                 setTimeout(machineMove, 500);
             }
+            // For AI games, the game loop will handle the turns
         }
 
         // Run a single game
@@ -601,17 +621,20 @@
             isSimulating = true;
             startNewGame();
             
-            // Wait for machine's first move
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Continue game until finished
+            // Game loop with proper turn alternation
             while (gameActive) {
-                if (currentPlayer === 'kids') {
-                    // AI opponent move with delay for visibility
+                if (currentPlayer === 'machine') {
+                    // Machine's turn
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    if (gameActive) machineMove();
+                } else {
+                    // AI opponent's turn
                     await new Promise(resolve => setTimeout(resolve, 1500));
                     if (gameActive) aiOpponentMove();
                 }
-                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Small pause between turns
+                await new Promise(resolve => setTimeout(resolve, 300));
             }
             
             isSimulating = false;
@@ -722,9 +745,10 @@
                 for (let move of history) {
                     if (move.player === 'machine') {
                         const box = machineBoxes[move.sticks];
-                        if (move.action === 1) box.red += 2;
-                        else if (move.action === 2) box.green += 2;
-                        else box.blue += 2;
+                        // Put back the bead that was picked, plus add one more of the same color
+                        if (move.action === 1) box.red += 1; // put back original + 1 extra = +1 total
+                        else if (move.action === 2) box.green += 1;
+                        else box.blue += 1;
                     }
                 }
             } else {
@@ -814,6 +838,7 @@
             if (currentPlayer === 'machine') {
                 playerDisplay.textContent = "Machine's turn";
                 actionButtons.style.display = 'none';
+                // Don't automatically trigger machine move here - it should be triggered by the calling function
             } else {
                 if (strategy === 'manual') {
                     playerDisplay.textContent = "Your turn (Kids)";
@@ -827,7 +852,7 @@
                 } else {
                     playerDisplay.textContent = `${strategy === 'optimal' ? 'Optimal' : 'Random'} player's turn`;
                     actionButtons.style.display = 'none';
-                    setTimeout(aiOpponentMove, 1000);
+                    // Don't automatically trigger AI move here - it should be triggered by the calling function
                 }
             }
         }
