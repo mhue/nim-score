@@ -114,7 +114,7 @@
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             gap: 10px;
-            margin: 20px 0;
+            margin: 20px 0 50px 0; /* Extra bottom margin for staging areas */
         }
 
         .box {
@@ -153,22 +153,26 @@
 
         .staging-area {
             position: absolute;
-            bottom: -25px;
+            bottom: -30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px dashed #555;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px dashed #888;
             border-radius: 8px;
-            padding: 3px 6px;
-            min-height: 18px;
+            padding: 4px 8px;
+            min-height: 20px;
+            min-width: 40px;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 2px;
+            gap: 3px;
+            z-index: 10;
         }
 
         .staging-area.empty {
-            display: none;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed #444;
+            display: flex; /* Always show staging areas, even when empty */
         }
 
         .staging-bead {
@@ -518,6 +522,7 @@
             log(`🤖 Machine draws ${colorName} bead from box ${sticksBeforeMove} → takes ${action} stick(s) → ${currentSticks} sticks remain`, "machine");
             
             updateDisplay();
+            updateBoxesDisplay(); // Ensure staging area is updated immediately
             
             if (currentSticks === 0) {
                 endGame('kids'); // Machine loses in misère variant
@@ -606,10 +611,10 @@
                 updateWinnerDisplay(winner);
                 updatePlayerTurn();
                 
-                // Apply learning after a brief delay to show the winner first
+                // Apply learning after a longer delay to show the winner and staging beads
                 setTimeout(() => {
                     applyWinningLearning();
-                }, 1000);
+                }, 3000);
             } else {
                 stats.kidsWins++;
                 log("🎉 GAME OVER: Kids win! (Machine took the last stick)", "kids");
@@ -617,10 +622,10 @@
                 updateWinnerDisplay(winner);
                 updatePlayerTurn();
                 
-                // Apply learning after a brief delay to show the winner first
+                // Apply learning after a longer delay to show the winner and staging beads
                 setTimeout(() => {
                     applyLosingLearning();
-                }, 1000);
+                }, 3000);
             }
         }
 
@@ -914,10 +919,11 @@
                 
                 // Add staging area
                 const stagingArea = document.createElement('div');
-                const stagingBeads = stagingAreas[sticks];
+                const stagingBeads = stagingAreas[sticks] || [];
                 
                 if (stagingBeads.length === 0) {
                     stagingArea.className = 'staging-area empty';
+                    stagingArea.innerHTML = ''; // Empty staging area
                 } else {
                     stagingArea.className = 'staging-area';
                     
