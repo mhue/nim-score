@@ -124,6 +124,7 @@
             padding: 12px 8px;
             text-align: center;
             min-width: 0; /* Allow boxes to shrink */
+            position: relative;
         }
 
         .box-title {
@@ -149,6 +150,44 @@
         .bead.red { background: var(--red); }
         .bead.green { background: var(--green); }
         .bead.blue { background: var(--blue); }
+
+        .staging-area {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px dashed #555;
+            border-radius: 8px;
+            padding: 3px 6px;
+            min-height: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .staging-area.empty {
+            display: none;
+        }
+
+        .staging-bead {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.4);
+            animation: beadPop 0.3s ease-out;
+        }
+
+        .staging-bead.red { background: var(--red); }
+        .staging-bead.green { background: var(--green); }
+        .staging-bead.blue { background: var(--blue); }
+
+        @keyframes beadPop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
 
         .stats {
             display: grid;
@@ -378,6 +417,9 @@
         // Each box represents a state (number of sticks remaining)
         // Each bead represents an action: red=1, green=2, blue=3
         let machineBoxes = {};
+        
+        // Staging areas - beads drawn from boxes during current game
+        let stagingAreas = {};
 
         // Statistics
         let stats = {
@@ -389,15 +431,25 @@
         // Initialize machine boxes (1 bead of each color in each box)
         function initializeMachineBoxes() {
             machineBoxes = {};
+            stagingAreas = {};
             for (let sticks = 1; sticks <= 6; sticks++) {
                 machineBoxes[sticks] = {
                     red: 1,    // take 1 stick
                     green: 1,  // take 2 sticks
                     blue: 1    // take 3 sticks
                 };
+                stagingAreas[sticks] = []; // Empty staging area
             }
             updateBoxesDisplay();
             log("Machine boxes initialized with 1 bead of each color", "learning");
+        }
+        
+        // Clear all staging areas for a new game
+        function clearStagingAreas() {
+            for (let sticks = 1; sticks <= 6; sticks++) {
+                stagingAreas[sticks] = [];
+            }
+            updateBoxesDisplay();
         }
 
         // Check if a box is empty and reinitialize if needed
@@ -440,6 +492,21 @@
             // Ensure action is valid (can't take more sticks than available)
             action = Math.min(action, currentSticks);
 
+            // Draw the bead from the box and place it in staging area
+            const sticksBeforeMove = currentSticks;
+            const colorName = action === 1 ? 'red' : action === 2 ? 'green' : 'blue';
+            
+            // Remove bead from box (conceptually drawn)
+            if (action === 1) box.red -= 1;
+            else if (action === 2) box.green -= 1;
+            else box.blue -= 1;
+            
+            // Add bead to staging area
+            stagingAreas[sticksBeforeMove].push({
+                color: colorName,
+                action: action
+            });
+
             // Record the action for learning
             gameHistory.push({
                 sticks: currentSticks,
@@ -447,9 +514,7 @@
                 player: 'machine'
             });
 
-            const sticksBeforeMove = currentSticks;
             currentSticks -= action;
-            const colorName = action === 1 ? 'red' : action === 2 ? 'green' : 'blue';
             log(`🤖 Machine draws ${colorName} bead from box ${sticksBeforeMove} → takes ${action} stick(s) → ${currentSticks} sticks remain`, "machine");
             
             updateDisplay();
@@ -537,50 +602,74 @@
             if (winner === 'machine') {
                 stats.machineWins++;
                 log("🎉 GAME OVER: Machine wins! (Kids took the last stick)", "machine");
-                // Learning rule 1: Machine wins - add beads back with one extra
-                applyWinningLearning();
+                updateStats();
+                updateWinnerDisplay(winner);
+                updatePlayerTurn();
+                
+                // Apply learning after a brief delay to show the winner first
+                setTimeout(() => {
+                    applyWinningLearning();
+                }, 1000);
             } else {
                 stats.kidsWins++;
                 log("🎉 GAME OVER: Kids win! (Machine took the last stick)", "kids");
-                // Learning rule 2: Machine loses - discard played beads
-                applyLosingLearning();
+                updateStats();
+                updateWinnerDisplay(winner);
+                updatePlayerTurn();
+                
+                // Apply learning after a brief delay to show the winner first
+                setTimeout(() => {
+                    applyLosingLearning();
+                }, 1000);
             }
-            
-            updateStats();
-            updateWinnerDisplay(winner);
-            updatePlayerTurn();
-            updateBoxesDisplay(); // Ensure boxes are updated after learning
         }
 
         // Apply learning when machine wins
         function applyWinningLearning() {
             log("🧠 LEARNING: Machine won - reinforcing successful moves:", "learning");
-            for (let move of gameHistory) {
-                if (move.player === 'machine') {
-                    const box = machineBoxes[move.sticks];
-                    const colorName = move.action === 1 ? 'red' : move.action === 2 ? 'green' : 'blue';
-                    const beforeCount = move.action === 1 ? box.red : move.action === 2 ? box.green : box.blue;
+            
+            // Process all staging areas
+            for (let sticks = 1; sticks <= 6; sticks++) {
+                const stagingBeads = stagingAreas[sticks];
+                if (stagingBeads.length > 0) {
+                    const box = machineBoxes[sticks];
                     
-                    // Put back the bead that was picked, plus add one more of the same color
-                    if (move.action === 1) box.red += 1; // put back original + 1 extra = +1 total
-                    else if (move.action === 2) box.green += 1;
-                    else box.blue += 1;
-                    
-                    const afterCount = move.action === 1 ? box.red : move.action === 2 ? box.green : box.blue;
-                    log(`  • Box ${move.sticks}: ${colorName} bead put back + 1 extra → ${beforeCount} → ${afterCount} (+1)`, "learning");
+                    for (let bead of stagingBeads) {
+                        const colorName = bead.color;
+                        const beforeCount = colorName === 'red' ? box.red : colorName === 'green' ? box.green : box.blue;
+                        
+                        // Put back the bead that was picked, plus add one more of the same color
+                        if (colorName === 'red') box.red += 2; // put back original + 1 extra = +2 total
+                        else if (colorName === 'green') box.green += 2;
+                        else box.blue += 2;
+                        
+                        const afterCount = colorName === 'red' ? box.red : colorName === 'green' ? box.green : box.blue;
+                        log(`  • Box ${sticks}: ${colorName} bead returned + 1 bonus → ${beforeCount} → ${afterCount} (+2)`, "learning");
+                    }
                 }
             }
+            
+            // Clear staging areas after learning
+            clearStagingAreas();
         }
 
         // Apply learning when machine loses
         function applyLosingLearning() {
             log("🧠 LEARNING: Machine lost - discarding unsuccessful moves:", "learning");
-            for (let move of gameHistory) {
-                if (move.player === 'machine') {
-                    const colorName = move.action === 1 ? 'red' : move.action === 2 ? 'green' : 'blue';
-                    log(`  • Box ${move.sticks}: ${colorName} bead discarded (not added back)`, "learning");
+            
+            // Process all staging areas
+            for (let sticks = 1; sticks <= 6; sticks++) {
+                const stagingBeads = stagingAreas[sticks];
+                if (stagingBeads.length > 0) {
+                    for (let bead of stagingBeads) {
+                        const colorName = bead.color;
+                        log(`  • Box ${sticks}: ${colorName} bead discarded (not returned to box)`, "learning");
+                    }
                 }
             }
+            
+            // Clear staging areas after learning (beads are discarded)
+            clearStagingAreas();
         }
 
         // Start a new game
@@ -589,6 +678,7 @@
             currentPlayer = 'machine';
             gameActive = true;
             gameHistory = [];
+            clearStagingAreas(); // Clear any beads from previous game
             updateDisplay();
             updateWinnerDisplay(null);
             updatePlayerTurn();
@@ -821,6 +911,24 @@
                 }
                 
                 box.appendChild(beadsContainer);
+                
+                // Add staging area
+                const stagingArea = document.createElement('div');
+                const stagingBeads = stagingAreas[sticks];
+                
+                if (stagingBeads.length === 0) {
+                    stagingArea.className = 'staging-area empty';
+                } else {
+                    stagingArea.className = 'staging-area';
+                    
+                    for (let bead of stagingBeads) {
+                        const stagingBead = document.createElement('div');
+                        stagingBead.className = `staging-bead ${bead.color}`;
+                        stagingArea.appendChild(stagingBead);
+                    }
+                }
+                
+                box.appendChild(stagingArea);
                 container.appendChild(box);
             }
         }
