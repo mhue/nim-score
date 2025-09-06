@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nim Reinforcement Learning Simulation</title>
+    <style>
+        :root {
+            --bg: #0e0f12;
+            --card: #171923;
+            --ink: #e8eaf3;
+            --muted: #9aa3b2;
+            --accent: #6ae3ff;
+            --ok: #34d399;
+            --warn: #f59e0b;
+            --red: #ef4444;
+            --green: #22c55e;
+            --blue: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            color: var(--ink);
+            background: radial-gradient(1200px 1200px at 100% -200px, #112 0, #0b0d12 50%, #06070a 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid #24273a;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,.25);
+        }
+
+        h1, h2, h3 {
+            margin: 0 0 15px 0;
+            font-weight: 700;
+        }
+
+        h1 {
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(180deg, #16213e, #0f172a);
+            border: 1px solid #3a4163;
+            color: var(--ink);
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(180deg, #1a2747, #13192e);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-state {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .current-game {
+            text-align: center;
+        }
+
+        .sticks {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stick {
+            width: 8px;
+            height: 60px;
+            background: #8b5a3c;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .boxes-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .box {
+            background: #2a2d3a;
+            border: 2px solid #404759;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .box-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .beads {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .bead {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .bead.red { background: var(--red); }
+        .bead.green { background: var(--green); }
+        .bead.blue { background: var(--blue); }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            text-align: center;
+        }
+
+        .stat {
+            background: #1a1d2e;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #2a2f45;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: var(--muted);
+        }
+
+        .log {
+            background: #0b0d16;
+            border: 1px solid #24273a;
+            border-radius: 12px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+
+        .log-entry.machine { color: var(--accent); }
+        .log-entry.kids { color: var(--ok); }
+        .log-entry.game { color: var(--warn); }
+        .log-entry.learning { color: #a78bfa; }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .action-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .action-button.take-1 { border-color: var(--red); }
+        .action-button.take-2 { border-color: var(--green); }
+        .action-button.take-3 { border-color: var(--blue); }
+
+        .winner {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 700;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .winner.machine {
+            background: rgba(106, 227, 255, 0.1);
+            color: var(--accent);
+            border: 2px solid var(--accent);
+        }
+
+        .winner.kids {
+            background: rgba(52, 211, 153, 0.1);
+            color: var(--ok);
+            border: 2px solid var(--ok);
+        }
+
+        .simulation-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        select {
+            background: #0f1120;
+            border: 1px solid #2a2f45;
+            color: var(--ink);
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #2a2d3a;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Nim Reinforcement Learning Simulation</h1>
+        
+        <div class="card">
+            <h2>Game Rules</h2>
+            <p><strong>Nim (Misère variant):</strong> Start with 6 sticks. Players take turns removing 1, 2, or 3 sticks. The player who takes the last stick <strong>loses</strong>.</p>
+            <p><strong>Machine Learning:</strong> The machine uses colored beads in boxes to make decisions. Each box represents a game state (number of sticks remaining). Red = take 1, Green = take 2, Blue = take 3.</p>
+        </div>
+
+        <div class="card">
+            <h2>Current Game</h2>
+            <div class="game-state">
+                <div class="current-game">
+                    <h3>Sticks Remaining: <span id="sticksCount">6</span></h3>
+                    <div class="sticks" id="sticksDisplay"></div>
+                    <div id="currentPlayer">Machine's turn</div>
+                    <div id="gameWinner"></div>
+                </div>
+                
+                <div>
+                    <h3>Machine's Boxes (Bead System)</h3>
+                    <div class="boxes-container" id="boxesContainer"></div>
+                </div>
+            </div>
+            
+            <div class="action-buttons" id="actionButtons">
+                <button class="action-button take-1" onclick="playerMove(1)" disabled>Take 1 stick (Red)</button>
+                <button class="action-button take-2" onclick="playerMove(2)" disabled>Take 2 sticks (Green)</button>
+                <button class="action-button take-3" onclick="playerMove(3)" disabled>Take 3 sticks (Blue)</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Simulation Controls</h2>
+            <div class="simulation-controls">
+                <label>Opponent Strategy:</label>
+                <select id="opponentStrategy">
+                    <option value="random">Random Player</option>
+                    <option value="optimal">Optimal Player</option>
+                    <option value="manual">Manual Play</option>
+                </select>
+                
+                <label>Number of Games:</label>
+                <select id="gameCount">
+                    <option value="10">10 Games</option>
+                    <option value="25">25 Games</option>
+                    <option value="50">50 Games</option>
+                    <option value="100" selected>100 Games</option>
+                    <option value="250">250 Games</option>
+                    <option value="500">500 Games</option>
+                    <option value="1000">1000 Games</option>
+                </select>
+                
+                <button onclick="runSingleGame()">Play One Game</button>
+                <button onclick="runMultipleGames()">Run Multiple Games</button>
+                <button onclick="resetMachine()">Reset Machine Learning</button>
+            </div>
+            
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Statistics</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="totalGames">0</div>
+                    <div class="stat-label">Total Games</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="machineWins">0</div>
+                    <div class="stat-label">Machine Wins</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="kidsWins">0</div>
+                    <div class="stat-label">Kids Wins</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="winRate">0%</div>
+                    <div class="stat-label">Machine Win Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Game Log</h2>
+            <div class="log" id="gameLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let currentSticks = 6;
+        let currentPlayer = 'machine'; // 'machine' or 'kids'
+        let gameActive = false;
+        let gameHistory = [];
+        let isSimulating = false;
+
+        // Machine learning state - boxes with beads
+        // Each box represents a state (number of sticks remaining)
+        // Each bead represents an action: red=1, green=2, blue=3
+        let machineBoxes = {};
+
+        // Statistics
+        let stats = {
+            totalGames: 0,
+            machineWins: 0,
+            kidsWins: 0
+        };
+
+        // Initialize machine boxes (1 bead of each color in each box)
+        function initializeMachineBoxes() {
+            machineBoxes = {};
+            for (let sticks = 1; sticks <= 6; sticks++) {
+                machineBoxes[sticks] = {
+                    red: 1,    // take 1 stick
+                    green: 1,  // take 2 sticks
+                    blue: 1    // take 3 sticks
+                };
+            }
+            updateBoxesDisplay();
+            log("Machine boxes initialized with 1 bead of each color", "learning");
+        }
+
+        // Check if a box is empty and reinitialize if needed
+        function checkAndReinitializeBox(sticks) {
+            const box = machineBoxes[sticks];
+            if (box.red === 0 && box.green === 0 && box.blue === 0) {
+                box.red = 1;
+                box.green = 1;
+                box.blue = 1;
+                log(`Box ${sticks} was empty - reinitialized with 1 bead of each color`, "learning");
+            }
+        }
+
+        // Machine makes a move based on bead probabilities
+        function machineMove() {
+            const box = machineBoxes[currentSticks];
+            checkAndReinitializeBox(currentSticks);
+            
+            // Calculate total beads and probabilities
+            const totalBeads = box.red + box.green + box.blue;
+            const probabilities = {
+                1: box.red / totalBeads,
+                2: box.green / totalBeads,
+                3: box.blue / totalBeads
+            };
+
+            // Random selection based on bead distribution
+            const rand = Math.random();
+            let cumulativeProb = 0;
+            let action = 1;
+
+            for (let move of [1, 2, 3]) {
+                cumulativeProb += probabilities[move];
+                if (rand <= cumulativeProb) {
+                    action = move;
+                    break;
+                }
+            }
+
+            // Ensure action is valid (can't take more sticks than available)
+            action = Math.min(action, currentSticks);
+
+            // Record the action for learning
+            gameHistory.push({
+                sticks: currentSticks,
+                action: action,
+                player: 'machine'
+            });
+
+            currentSticks -= action;
+            log(`Machine takes ${action} stick(s) from box ${currentSticks + action} (${action === 1 ? 'red' : action === 2 ? 'green' : 'blue'} bead)`, "machine");
+            
+            updateDisplay();
+            
+            if (currentSticks === 0) {
+                endGame('kids'); // Machine loses in misère variant
+            } else {
+                currentPlayer = 'kids';
+                updatePlayerTurn();
+            }
+        }
+
+        // Player makes a move
+        function playerMove(action) {
+            if (!gameActive || currentPlayer !== 'kids') return;
+
+            action = Math.min(action, currentSticks);
+            currentSticks -= action;
+            
+            log(`Kids take ${action} stick(s)`, "kids");
+            updateDisplay();
+            
+            if (currentSticks === 0) {
+                endGame('machine'); // Kids lose in misère variant
+            } else {
+                currentPlayer = 'machine';
+                updatePlayerTurn();
+                setTimeout(machineMove, 1000); // Delay for better visualization
+            }
+        }
+
+        // Optimal player strategy for misère Nim
+        function getOptimalMove(sticks) {
+            // In misère Nim with n sticks, the optimal strategy is:
+            // If n % 4 == 1, take 1 stick
+            // If n % 4 == 2, take 1 stick  
+            // If n % 4 == 3, take 2 sticks
+            // If n % 4 == 0, take 3 sticks
+            const remainder = sticks % 4;
+            if (remainder === 1) return 1;
+            if (remainder === 2) return 1;
+            if (remainder === 3) return 2;
+            return 3; // remainder === 0
+        }
+
+        // Random player strategy
+        function getRandomMove(sticks) {
+            return Math.floor(Math.random() * Math.min(3, sticks)) + 1;
+        }
+
+        // AI opponent move
+        function aiOpponentMove() {
+            const strategy = document.getElementById('opponentStrategy').value;
+            let action;
+            
+            if (strategy === 'optimal') {
+                action = getOptimalMove(currentSticks);
+            } else {
+                action = getRandomMove(currentSticks);
+            }
+            
+            action = Math.min(action, currentSticks);
+            currentSticks -= action;
+            
+            const strategyName = strategy === 'optimal' ? 'Optimal' : 'Random';
+            log(`${strategyName} player takes ${action} stick(s)`, "kids");
+            updateDisplay();
+            
+            if (currentSticks === 0) {
+                endGame('machine'); // Kids lose in misère variant
+            } else {
+                currentPlayer = 'machine';
+                updatePlayerTurn();
+            }
+        }
+
+        // End game and apply learning
+        function endGame(winner) {
+            gameActive = false;
+            stats.totalGames++;
+            
+            if (winner === 'machine') {
+                stats.machineWins++;
+                log("🎉 Machine wins!", "machine");
+                // Learning rule 1: Machine wins - add beads back with one extra
+                applyWinningLearning();
+            } else {
+                stats.kidsWins++;
+                log("🎉 Kids win!", "kids");
+                // Learning rule 2: Machine loses - discard played beads
+                applyLosingLearning();
+            }
+            
+            updateStats();
+            updateWinnerDisplay(winner);
+            updatePlayerTurn();
+        }
+
+        // Apply learning when machine wins
+        function applyWinningLearning() {
+            for (let move of gameHistory) {
+                if (move.player === 'machine') {
+                    const box = machineBoxes[move.sticks];
+                    const colorName = move.action === 1 ? 'red' : move.action === 2 ? 'green' : 'blue';
+                    
+                    // Add back the bead that was played, plus one more
+                    if (move.action === 1) box.red += 2;
+                    else if (move.action === 2) box.green += 2;
+                    else box.blue += 2;
+                    
+                    log(`Learning: Added 2 ${colorName} beads to box ${move.sticks}`, "learning");
+                }
+            }
+            updateBoxesDisplay();
+        }
+
+        // Apply learning when machine loses
+        function applyLosingLearning() {
+            log("Learning: Discarded played beads (no beads added back)", "learning");
+            // Beads are already "removed" conceptually when played
+            // In the physical version, you would discard them
+            // Here we just don't add them back
+        }
+
+        // Start a new game
+        function startNewGame() {
+            currentSticks = 6;
+            currentPlayer = 'machine';
+            gameActive = true;
+            gameHistory = [];
+            updateDisplay();
+            updateWinnerDisplay(null);
+            updatePlayerTurn();
+            
+            log("🎮 New game started!", "game");
+            
+            // Start with machine move if not manual play
+            if (document.getElementById('opponentStrategy').value !== 'manual') {
+                setTimeout(machineMove, 500);
+            }
+        }
+
+        // Run a single game
+        function runSingleGame() {
+            if (isSimulating) return;
+            
+            const strategy = document.getElementById('opponentStrategy').value;
+            
+            if (strategy === 'manual') {
+                // Manual play - start interactive game
+                startNewGame();
+            } else {
+                // AI vs AI - run single game with full visualization
+                runSingleGameWithAI(strategy);
+            }
+        }
+        
+        // Run a single game against AI with full visualization
+        async function runSingleGameWithAI(strategy) {
+            isSimulating = true;
+            startNewGame();
+            
+            // Wait for machine's first move
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Continue game until finished
+            while (gameActive) {
+                if (currentPlayer === 'kids') {
+                    // AI opponent move with delay for visibility
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    if (gameActive) aiOpponentMove();
+                }
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            isSimulating = false;
+        }
+
+        // Run multiple games for training
+        async function runMultipleGames() {
+            if (isSimulating) return;
+            
+            isSimulating = true;
+            const strategy = document.getElementById('opponentStrategy').value;
+            const gameCount = parseInt(document.getElementById('gameCount').value);
+            
+            if (strategy === 'manual') {
+                alert('Cannot run multiple games in manual mode');
+                isSimulating = false;
+                return;
+            }
+            
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.style.display = 'block';
+            
+            log(`🚀 Running ${gameCount} games against ${strategy} player...`, "game");
+            
+            for (let i = 0; i < gameCount; i++) {
+                // Update progress
+                progressFill.style.width = `${(i / gameCount) * 100}%`;
+                
+                // Run game silently (fast simulation)
+                await runGameSilently(strategy);
+                
+                // Small delay to show progress (adjust frequency based on game count)
+                const updateFrequency = Math.max(1, Math.floor(gameCount / 20));
+                if (i % updateFrequency === 0) {
+                    await new Promise(resolve => setTimeout(resolve, gameCount > 100 ? 20 : 50));
+                }
+            }
+            
+            progressFill.style.width = '100%';
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+            }, 1000);
+            
+            log(`✅ Completed ${gameCount} games simulation`, "game");
+            updateBoxesDisplay();
+            isSimulating = false;
+        }
+
+        // Run a single game silently for simulation
+        async function runGameSilently(strategy) {
+            let sticks = 6;
+            let player = 'machine';
+            let history = [];
+            
+            while (sticks > 0) {
+                let action;
+                
+                if (player === 'machine') {
+                    // Machine move
+                    const box = machineBoxes[sticks];
+                    checkAndReinitializeBox(sticks);
+                    
+                    const totalBeads = box.red + box.green + box.blue;
+                    const rand = Math.random();
+                    let cumulativeProb = 0;
+                    action = 1;
+                    
+                    const probabilities = [
+                        box.red / totalBeads,
+                        box.green / totalBeads,
+                        box.blue / totalBeads
+                    ];
+                    
+                    for (let i = 0; i < 3; i++) {
+                        cumulativeProb += probabilities[i];
+                        if (rand <= cumulativeProb) {
+                            action = i + 1;
+                            break;
+                        }
+                    }
+                    
+                    action = Math.min(action, sticks);
+                    history.push({ sticks, action, player: 'machine' });
+                } else {
+                    // Opponent move
+                    if (strategy === 'optimal') {
+                        action = getOptimalMove(sticks);
+                    } else {
+                        action = getRandomMove(sticks);
+                    }
+                    action = Math.min(action, sticks);
+                }
+                
+                sticks -= action;
+                player = player === 'machine' ? 'kids' : 'machine';
+            }
+            
+            // Determine winner (last player to move loses in misère)
+            const winner = player === 'machine' ? 'machine' : 'kids';
+            
+            // Update stats
+            stats.totalGames++;
+            if (winner === 'machine') {
+                stats.machineWins++;
+                // Apply winning learning
+                for (let move of history) {
+                    if (move.player === 'machine') {
+                        const box = machineBoxes[move.sticks];
+                        if (move.action === 1) box.red += 2;
+                        else if (move.action === 2) box.green += 2;
+                        else box.blue += 2;
+                    }
+                }
+            } else {
+                stats.kidsWins++;
+                // Apply losing learning (discard beads - no action needed)
+            }
+            
+            updateStats();
+        }
+
+        // Reset machine learning
+        function resetMachine() {
+            initializeMachineBoxes();
+            stats = { totalGames: 0, machineWins: 0, kidsWins: 0 };
+            updateStats();
+            log("🔄 Machine learning reset", "learning");
+        }
+
+        // Update displays
+        function updateDisplay() {
+            document.getElementById('sticksCount').textContent = currentSticks;
+            
+            const sticksDisplay = document.getElementById('sticksDisplay');
+            sticksDisplay.innerHTML = '';
+            for (let i = 0; i < currentSticks; i++) {
+                const stick = document.createElement('div');
+                stick.className = 'stick';
+                sticksDisplay.appendChild(stick);
+            }
+        }
+
+        function updateBoxesDisplay() {
+            const container = document.getElementById('boxesContainer');
+            container.innerHTML = '';
+            
+            for (let sticks = 1; sticks <= 6; sticks++) {
+                const box = document.createElement('div');
+                box.className = 'box';
+                
+                const title = document.createElement('div');
+                title.className = 'box-title';
+                title.textContent = `${sticks} stick${sticks > 1 ? 's' : ''}`;
+                box.appendChild(title);
+                
+                const beadsContainer = document.createElement('div');
+                beadsContainer.className = 'beads';
+                
+                const boxData = machineBoxes[sticks];
+                
+                // Add red beads
+                for (let i = 0; i < boxData.red; i++) {
+                    const bead = document.createElement('div');
+                    bead.className = 'bead red';
+                    beadsContainer.appendChild(bead);
+                }
+                
+                // Add green beads
+                for (let i = 0; i < boxData.green; i++) {
+                    const bead = document.createElement('div');
+                    bead.className = 'bead green';
+                    beadsContainer.appendChild(bead);
+                }
+                
+                // Add blue beads
+                for (let i = 0; i < boxData.blue; i++) {
+                    const bead = document.createElement('div');
+                    bead.className = 'bead blue';
+                    beadsContainer.appendChild(bead);
+                }
+                
+                box.appendChild(beadsContainer);
+                container.appendChild(box);
+            }
+        }
+
+        function updatePlayerTurn() {
+            const playerDisplay = document.getElementById('currentPlayer');
+            const actionButtons = document.getElementById('actionButtons');
+            const strategy = document.getElementById('opponentStrategy').value;
+            
+            if (!gameActive) {
+                playerDisplay.textContent = 'Game Over';
+                actionButtons.style.display = 'none';
+                return;
+            }
+            
+            if (currentPlayer === 'machine') {
+                playerDisplay.textContent = "Machine's turn";
+                actionButtons.style.display = 'none';
+            } else {
+                if (strategy === 'manual') {
+                    playerDisplay.textContent = "Your turn (Kids)";
+                    actionButtons.style.display = 'flex';
+                    
+                    // Enable/disable buttons based on available sticks
+                    const buttons = actionButtons.querySelectorAll('button');
+                    buttons.forEach((btn, index) => {
+                        btn.disabled = (index + 1) > currentSticks;
+                    });
+                } else {
+                    playerDisplay.textContent = `${strategy === 'optimal' ? 'Optimal' : 'Random'} player's turn`;
+                    actionButtons.style.display = 'none';
+                    setTimeout(aiOpponentMove, 1000);
+                }
+            }
+        }
+
+        function updateWinnerDisplay(winner) {
+            const winnerDisplay = document.getElementById('gameWinner');
+            if (winner) {
+                winnerDisplay.innerHTML = `<div class="winner ${winner}">${winner === 'machine' ? '🤖 Machine Wins!' : '👥 Kids Win!'}</div>`;
+            } else {
+                winnerDisplay.innerHTML = '';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalGames').textContent = stats.totalGames;
+            document.getElementById('machineWins').textContent = stats.machineWins;
+            document.getElementById('kidsWins').textContent = stats.kidsWins;
+            
+            const winRate = stats.totalGames > 0 ? 
+                Math.round((stats.machineWins / stats.totalGames) * 100) : 0;
+            document.getElementById('winRate').textContent = winRate + '%';
+        }
+
+        function log(message, type = '') {
+            const logContainer = document.getElementById('gameLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Initialize the game
+        function init() {
+            initializeMachineBoxes();
+            updateDisplay();
+            updateStats();
+            updatePlayerTurn();
+            
+            log("🎯 Nim Reinforcement Learning Simulation started", "game");
+            log("The machine starts with 1 bead of each color in each box", "learning");
+        }
+
+        // Strategy change handler
+        document.getElementById('opponentStrategy').addEventListener('change', function() {
+            if (gameActive) {
+                log("Strategy changed mid-game - please start a new game", "game");
+            }
+            updatePlayerTurn();
+        });
+
+        // Initialize when page loads
+        init();
+    </script>
+</body>
+</html>
