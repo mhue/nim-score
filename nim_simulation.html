@@ -256,6 +256,30 @@
         .action-button.take-2 { border-color: var(--green); }
         .action-button.take-3 { border-color: var(--blue); }
 
+        .learning-button {
+            background: linear-gradient(180deg, #4c1d95, #312e81);
+            border: 2px solid #7c3aed;
+            color: var(--ink);
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            animation: learningPulse 2s ease-in-out infinite;
+        }
+
+        .learning-button:hover {
+            background: linear-gradient(180deg, #5b21b6, #3730a3);
+            transform: translateY(-1px);
+        }
+
+        @keyframes learningPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+        }
+
         .winner {
             text-align: center;
             font-size: 2em;
@@ -348,6 +372,10 @@
                 <button class="action-button take-2" onclick="playerMove(2)" disabled>Take 2 sticks (Green)</button>
                 <button class="action-button take-3" onclick="playerMove(3)" disabled>Take 3 sticks (Blue)</button>
             </div>
+            
+            <button class="learning-button" id="learningButton" onclick="processLearning()" style="display: none;">
+                🧠 Apply Learning Rules
+            </button>
         </div>
 
         <div class="card">
