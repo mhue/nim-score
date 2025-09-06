@@ -401,6 +401,7 @@
                 
                 <button onclick="runSingleGame()">Play One Game</button>
                 <button onclick="runMultipleGames()">Run Multiple Games</button>
+                <button id="learnButton" onclick="processLearning()" style="display: none;">🧠 Learn from Game</button>
                 <button onclick="resetMachine()">Reset Machine Learning</button>
             </div>
             
@@ -444,6 +445,8 @@
         let gameActive = false;
         let gameHistory = [];
         let isSimulating = false;
+        let isBatchSimulation = false; // Track if we're running multiple games
+        let lastGameWinner = null; // Track winner for manual learning
 
         // Machine learning state - boxes with beads
         // Each box represents a state (number of sticks remaining)
@@ -478,10 +481,12 @@
         
         // Clear all staging areas for a new game
         function clearStagingAreas() {
+            console.log("clearStagingAreas() called from:", new Error().stack);
             for (let sticks = 1; sticks <= 6; sticks++) {
                 stagingAreas[sticks] = [];
             }
             updateBoxesDisplay();
+            log("🧹 Staging areas cleared", "learning");
         }
 
         // Check if a box is empty and reinitialize if needed
@@ -627,33 +632,35 @@
             }
         }
 
-        // End game and apply learning
+        // End game and prepare for learning
         function endGame(winner) {
             gameActive = false;
             stats.totalGames++;
+            lastGameWinner = winner;
             
             if (winner === 'machine') {
                 stats.machineWins++;
                 log("🎉 GAME OVER: Machine wins! (Kids took the last stick)", "machine");
-                updateStats();
-                updateWinnerDisplay(winner);
-                updatePlayerTurn();
-                
-                // Apply learning after a longer delay to show the winner and staging beads
-                setTimeout(() => {
-                    applyWinningLearning();
-                }, 3000);
             } else {
                 stats.kidsWins++;
                 log("🎉 GAME OVER: Kids win! (Machine took the last stick)", "kids");
-                updateStats();
-                updateWinnerDisplay(winner);
-                updatePlayerTurn();
-                
-                // Apply learning after a longer delay to show the winner and staging beads
+            }
+            
+            updateStats();
+            updateWinnerDisplay(winner);
+            updatePlayerTurn();
+            
+            // Show learn button for single games, auto-learn only for batch simulations
+            if (!isBatchSimulation) {
+                // Single games (manual or AI) - show learn button
+                document.getElementById('learnButton').style.display = 'inline-block';
+                log("👆 Click 'Learn from Game' to see how the machine processes this result!", "game");
+                // Don't clear staging areas - keep them visible until learning
+            } else {
+                // Only for automated batch simulations, apply learning immediately
                 setTimeout(() => {
-                    applyLosingLearning();
-                }, 3000);
+                    processLearning();
+                }, 1000);
             }
         }
 
@@ -705,13 +712,40 @@
             clearStagingAreas();
         }
 
+        // Process learning based on the last game result
+        function processLearning() {
+            if (lastGameWinner === null) {
+                log("⚠️ No game to learn from!", "warn");
+                return;
+            }
+            
+            // Hide the learn button
+            document.getElementById('learnButton').style.display = 'none';
+            
+            if (lastGameWinner === 'machine') {
+                applyWinningLearning();
+            } else {
+                applyLosingLearning();
+            }
+            
+            // Reset for next game
+            lastGameWinner = null;
+        }
+
         // Start a new game
-        function startNewGame() {
+        function startNewGame(forceClear = false) {
             currentSticks = 6;
             currentPlayer = 'machine';
             gameActive = true;
             gameHistory = [];
-            clearStagingAreas(); // Clear any beads from previous game
+            
+            // Only clear staging areas if explicitly requested or if no game result is pending
+            if (forceClear || lastGameWinner === null) {
+                clearStagingAreas(); // Clear any beads from previous game
+                lastGameWinner = null;
+                document.getElementById('learnButton').style.display = 'none';
+            }
+            
             updateDisplay();
             updateWinnerDisplay(null);
             updatePlayerTurn();
@@ -743,7 +777,7 @@
         // Run a single game against AI with full visualization
         async function runSingleGameWithAI(strategy) {
             isSimulating = true;
-            startNewGame();
+            startNewGame(true); // Force clear for new game
             
             // Game loop with proper turn alternation
             while (gameActive) {
@@ -762,6 +796,7 @@
             }
             
             isSimulating = false;
+            // Don't clear staging areas here - let the manual learning process handle it
         }
 
         // Run multiple games for training
@@ -769,6 +804,7 @@
             if (isSimulating) return;
             
             isSimulating = true;
+            isBatchSimulation = true; // Flag for batch mode
             const strategy = document.getElementById('opponentStrategy').value;
             const gameCount = parseInt(document.getElementById('gameCount').value);
             
@@ -783,6 +819,9 @@
             progressBar.style.display = 'block';
             
             log(`🚀 Running ${gameCount} games against ${strategy} player...`, "game");
+            
+            // Force clear staging areas for batch simulation
+            clearStagingAreas();
             
             for (let i = 0; i < gameCount; i++) {
                 // Update progress
@@ -807,6 +846,7 @@
             log(`✅ Completed ${gameCount} games simulation`, "game");
             updateBoxesDisplay();
             isSimulating = false;
+            isBatchSimulation = false; // Reset batch flag
         }
 
         // Run a single game silently for simulation
