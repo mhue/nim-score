@@ -114,7 +114,7 @@
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             gap: 10px;
-            margin: 20px 0 50px 0; /* Extra bottom margin for staging areas */
+            margin: 20px 0 80px 0; /* Extra bottom margin for staging areas and taken sticks */
         }
 
         .box {
@@ -173,6 +173,43 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px dashed #444;
             display: flex; /* Always show staging areas, even when empty */
+        }
+
+        .taken-sticks-area {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .machine-taken-sticks {
+            display: flex;
+            gap: 3px;
+            padding: 2px 4px;
+            background: rgba(106, 227, 255, 0.1);
+            border: 1px solid rgba(106, 227, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .opponent-taken-sticks {
+            display: flex;
+            gap: 3px;
+            padding: 2px 4px;
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            border-radius: 4px;
+        }
+
+        .taken-stick {
+            width: 6px;
+            height: 20px;
+            background: #8b5a3c;
+            border-radius: 3px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
 
         .staging-bead {
@@ -455,6 +492,9 @@
         
         // Staging areas - beads drawn from boxes during current game
         let stagingAreas = {};
+        
+        // Taken sticks areas - sticks taken by each player during current game
+        let takenSticksAreas = {};
 
         // Statistics
         let stats = {
@@ -467,6 +507,7 @@
         function initializeMachineBoxes() {
             machineBoxes = {};
             stagingAreas = {};
+            takenSticksAreas = {};
             for (let sticks = 1; sticks <= 6; sticks++) {
                 machineBoxes[sticks] = {
                     red: 1,    // take 1 stick
@@ -474,6 +515,10 @@
                     blue: 1    // take 3 sticks
                 };
                 stagingAreas[sticks] = []; // Empty staging area
+                takenSticksAreas[sticks] = {
+                    machine: [], // Sticks taken by machine
+                    opponent: [] // Sticks taken by opponent
+                };
             }
             updateBoxesDisplay();
             log("Machine boxes initialized with 1 bead of each color", "learning");
@@ -484,6 +529,10 @@
             console.log("clearStagingAreas() called from:", new Error().stack);
             for (let sticks = 1; sticks <= 6; sticks++) {
                 stagingAreas[sticks] = [];
+                takenSticksAreas[sticks] = {
+                    machine: [],
+                    opponent: []
+                };
             }
             updateBoxesDisplay();
             log("🧹 Staging areas cleared", "learning");
@@ -544,6 +593,11 @@
                 action: action
             });
 
+            // Add taken sticks to the visual area (below the bead)
+            for (let i = 0; i < action; i++) {
+                takenSticksAreas[sticksBeforeMove].machine.push('stick');
+            }
+
             // Record the action for learning
             gameHistory.push({
                 sticks: currentSticks,
@@ -571,10 +625,17 @@
 
             action = Math.min(action, currentSticks);
             const sticksBeforeMove = currentSticks;
+            
+            // Add taken sticks to the visual area for the corresponding box
+            for (let i = 0; i < action; i++) {
+                takenSticksAreas[sticksBeforeMove].opponent.push('stick');
+            }
+            
             currentSticks -= action;
             
             log(`👥 Kids take ${action} stick(s) → ${currentSticks} sticks remain`, "kids");
             updateDisplay();
+            updateBoxesDisplay(); // Update visual areas
             
             if (currentSticks === 0) {
                 endGame('machine'); // Kids lose in misère variant
@@ -617,11 +678,18 @@
             
             action = Math.min(action, currentSticks);
             const sticksBeforeMove = currentSticks;
+            
+            // Add taken sticks to the visual area for the corresponding box
+            for (let i = 0; i < action; i++) {
+                takenSticksAreas[sticksBeforeMove].opponent.push('stick');
+            }
+            
             currentSticks -= action;
             
             const strategyName = strategy === 'optimal' ? 'Optimal' : 'Random';
             log(`👥 ${strategyName} player takes ${action} stick(s) → ${currentSticks} sticks remain`, "kids");
             updateDisplay();
+            updateBoxesDisplay(); // Update visual areas
             
             if (currentSticks === 0) {
                 endGame('machine'); // Kids lose in misère variant
@@ -1003,6 +1071,42 @@
                 }
                 
                 box.appendChild(stagingArea);
+                
+                // Add taken sticks area
+                const takenSticksArea = document.createElement('div');
+                takenSticksArea.className = 'taken-sticks-area';
+                
+                const takenSticks = takenSticksAreas[sticks];
+                
+                // Machine taken sticks (below the bead)
+                if (takenSticks.machine.length > 0) {
+                    const machineTaken = document.createElement('div');
+                    machineTaken.className = 'machine-taken-sticks';
+                    
+                    for (let stick of takenSticks.machine) {
+                        const takenStick = document.createElement('div');
+                        takenStick.className = 'taken-stick';
+                        machineTaken.appendChild(takenStick);
+                    }
+                    
+                    takenSticksArea.appendChild(machineTaken);
+                }
+                
+                // Opponent taken sticks (further below)
+                if (takenSticks.opponent.length > 0) {
+                    const opponentTaken = document.createElement('div');
+                    opponentTaken.className = 'opponent-taken-sticks';
+                    
+                    for (let stick of takenSticks.opponent) {
+                        const takenStick = document.createElement('div');
+                        takenStick.className = 'taken-stick';
+                        opponentTaken.appendChild(takenStick);
+                    }
+                    
+                    takenSticksArea.appendChild(opponentTaken);
+                }
+                
+                box.appendChild(takenSticksArea);
                 container.appendChild(box);
             }
         }
