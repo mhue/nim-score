@@ -573,16 +573,17 @@
 
         // Optimal player strategy for misère Nim
         function getOptimalMove(sticks) {
-            // In misère Nim with n sticks, the optimal strategy is:
-            // If n % 4 == 1, take 1 stick
-            // If n % 4 == 2, take 1 stick  
-            // If n % 4 == 3, take 2 sticks
-            // If n % 4 == 0, take 3 sticks
             const remainder = sticks % 4;
-            if (remainder === 1) return 1;
-            if (remainder === 2) return 1;
-            if (remainder === 3) return 2;
-            return 3; // remainder === 0
+            
+            // If in losing position (remainder === 1), play randomly
+            if (remainder === 1) {
+                return Math.floor(Math.random() * Math.min(3, sticks)) + 1;
+            }
+            
+            // Otherwise play optimally to maintain winning position
+            if (remainder === 2) return 1;  // Take 1 stick
+            if (remainder === 3) return 2;  // Take 2 sticks
+            return 3; // remainder === 0, take 3 sticks
         }
 
         // Random player strategy
